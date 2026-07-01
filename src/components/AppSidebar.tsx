@@ -10,6 +10,7 @@ import {
   Swords,
   LogIn,
   LogOut,
+  User,
 } from "lucide-react";
 import { MONTHS } from "@/lib/curriculum";
 import { useAuth } from "@/lib/auth";
@@ -56,6 +57,7 @@ export function AppSidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         <div className="space-y-1">
           <Item to="/" icon={LayoutDashboard} label="Dashboard" />
+          <Item to="/profile" icon={User} label="Profile" />
           <Item to="/roadmap" icon={Map} label="Roadmap" />
           <Item to="/statistics" icon={BarChart3} label="Statistics" />
           <Item to="/calendar" icon={CalendarIcon} label="Calendar" />
@@ -109,8 +111,10 @@ export function AppSidebar() {
         {user ? (
           <div className="glass rounded-xl p-3 space-y-2">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Account</div>
-            <div className="text-xs truncate font-medium">{user.email}</div>
-            <div className="text-[11px] text-muted-foreground capitalize">{syncStatus === "saved" ? "Synced" : syncStatus}</div>
+            <Link to="/profile" className="block group">
+              <div className="text-xs truncate font-medium group-hover:text-primary transition-colors">{user.email}</div>
+              <div className="text-[11px] text-muted-foreground capitalize">{syncStatus === "saved" ? "Synced" : syncStatus}</div>
+            </Link>
             <button
               type="button"
               onClick={() => signOut().catch(() => undefined)}

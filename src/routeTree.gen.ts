@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RoadmapRouteImport } from './routes/roadmap'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CalendarRouteImport } from './routes/calendar'
@@ -34,6 +35,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const RoadmapRoute = RoadmapRouteImport.update({
   id: '/roadmap',
   path: '/roadmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PracticeRoute = PracticeRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
+  '/profile': typeof ProfileRoute
   '/roadmap': typeof RoadmapRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
+  '/profile': typeof ProfileRoute
   '/roadmap': typeof RoadmapRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
+  '/profile': typeof ProfileRoute
   '/roadmap': typeof RoadmapRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/login'
     | '/practice'
+    | '/profile'
     | '/roadmap'
     | '/settings'
     | '/statistics'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/login'
     | '/practice'
+    | '/profile'
     | '/roadmap'
     | '/settings'
     | '/statistics'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/login'
     | '/practice'
+    | '/profile'
     | '/roadmap'
     | '/settings'
     | '/statistics'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   LoginRoute: typeof LoginRoute
   PracticeRoute: typeof PracticeRoute
+  ProfileRoute: typeof ProfileRoute
   RoadmapRoute: typeof RoadmapRoute
   SettingsRoute: typeof SettingsRoute
   StatisticsRoute: typeof StatisticsRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/roadmap'
       fullPath: '/roadmap'
       preLoaderRoute: typeof RoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/practice': {
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   LoginRoute: LoginRoute,
   PracticeRoute: PracticeRoute,
+  ProfileRoute: ProfileRoute,
   RoadmapRoute: RoadmapRoute,
   SettingsRoute: SettingsRoute,
   StatisticsRoute: StatisticsRoute,

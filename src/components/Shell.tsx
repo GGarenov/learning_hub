@@ -30,6 +30,7 @@ export function MobileTopbar() {
       {open && (
         <div className="px-3 pb-3 space-y-1">
           <Link2 to="/" label="Dashboard" />
+          <Link2 to="/profile" label="Profile" />
           <Link2 to="/roadmap" label="Roadmap" />
           <Link2 to="/statistics" label="Statistics" />
           <Link2 to="/calendar" label="Calendar" />
