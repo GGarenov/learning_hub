@@ -11,6 +11,7 @@ import { type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth";
 
 function NotFoundComponent() {
   return (
@@ -89,11 +90,13 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <Outlet />
-      </div>
-      <Toaster />
+      <AuthProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <Outlet />
+        </div>
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

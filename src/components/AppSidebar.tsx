@@ -8,14 +8,18 @@ import {
   Calendar as CalendarIcon,
   ChevronRight,
   Swords,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { MONTHS } from "@/lib/curriculum";
+import { useAuth } from "@/lib/auth";
 import { useAppStore, monthProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const completed = useAppStore((s) => s.completedLectures);
+  const { user, signOut, syncStatus } = useAuth();
 
   const Item = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => {
     const active = pathname === to;
@@ -101,7 +105,28 @@ export function AppSidebar() {
         </div>
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        {user ? (
+          <div className="glass rounded-xl p-3 space-y-2">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Account</div>
+            <div className="text-xs truncate font-medium">{user.email}</div>
+            <div className="text-[11px] text-muted-foreground capitalize">{syncStatus === "saved" ? "Synced" : syncStatus}</div>
+            <button
+              type="button"
+              onClick={() => signOut().catch(() => undefined)}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="size-3.5" /> Sign out
+            </button>
+          </div>
+        ) : (
+          <Link
+            to="/login"
+            className="glass rounded-xl p-3 flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <LogIn className="size-4" /> Sign in to sync
+          </Link>
+        )}
         <div className="glass rounded-xl p-3">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Tip</div>
           <div className="text-xs mt-1 leading-relaxed">

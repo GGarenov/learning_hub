@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef } from "react";
 import { Shell } from "@/components/Shell";
+import { useAuth } from "@/lib/auth";
+import { saveProgress, serializeAppState } from "@/lib/progress-sync";
 import { useAppStore, StateSchema } from "@/lib/store";
-import { Download, Upload, Trash2, Sparkles } from "lucide-react";
+import { Cloud, Download, Upload, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
@@ -10,35 +12,69 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
+function syncStatusLabel(status: string, lastSyncedAt: string | null): string {
+  switch (status) {
+    case "saving":
+      return "Saving…";
+    case "saved":
+      return lastSyncedAt ? `Saved · ${new Date(lastSyncedAt).toLocaleString()}` : "Saved";
+    case "loading":
+      return "Loading from cloud…";
+    case "error":
+      return "Sync error";
+    case "offline":
+      return "Offline (local only)";
+    default:
+      return "Idle";
+  }
+}
+
 function SettingsPage() {
   const state = useAppStore();
+  const { user, configured, syncStatus, lastSyncedAt, uploadLocalToCloud } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const exportData = () => {
-    const { toggleLecture, setNote, completeProject, recordAssessment, setCalendarDay, setSetting, reset, importState, ...data } = state as any;
+    const data = serializeAppState(state as Record<string, unknown>);
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `roadmap-progress-${new Date().toISOString().slice(0, 10)}.json`;
+    a.href = url;
+    a.download = `roadmap-progress-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Exported your progress");
   };
 
-  const importData = (file: File) => {
+  const importData = async (file: File) => {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const parsed = JSON.parse(reader.result as string);
         const valid = StateSchema.parse(parsed);
         state.importState(valid);
-        toast.success("Progress imported");
-      } catch (e) {
+        if (user?.id) await saveProgress(user.id, valid);
+        toast.success(user ? "Progress imported and synced" : "Progress imported");
+      } catch {
         toast.error("Invalid file");
       }
     };
     reader.readAsText(file);
+  };
+
+  const resetAll = async () => {
+    if (!confirm("Reset all progress? This cannot be undone.")) return;
+    state.reset();
+    if (user?.id) {
+      try {
+        await saveProgress(user.id, serializeAppState(useAppStore.getState() as Record<string, unknown>));
+      } catch {
+        toast.error("Local reset done, but cloud reset failed");
+        return;
+      }
+    }
+    toast.success("Progress reset");
   };
 
   return (
@@ -49,12 +85,54 @@ function SettingsPage() {
       </header>
 
       <div className="space-y-4 max-w-2xl">
+        <Section
+          title="Account & sync"
+          desc={
+            user
+              ? "Signed in — progress syncs to the cloud automatically."
+              : "Sign in to sync progress across devices. Without an account, data stays in this browser only."
+          }
+        >
+          {configured ? (
+            <div className="rounded-lg border border-border p-3 text-sm space-y-2">
+              {user ? (
+                <>
+                  <div>
+                    <span className="text-muted-foreground">Signed in as </span>
+                    <span className="font-medium">{user.email}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Sync: {syncStatusLabel(syncStatus, lastSyncedAt)}
+                  </div>
+                </>
+              ) : (
+                <a href="/login" className="text-primary font-medium hover:underline">
+                  Sign in or create account →
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+              Add <code className="text-xs">VITE_SUPABASE_URL</code> and{" "}
+              <code className="text-xs">VITE_SUPABASE_ANON_KEY</code> to <code className="text-xs">.env.local</code>.
+            </div>
+          )}
+          {user && (
+            <button
+              onClick={() => uploadLocalToCloud().catch(() => toast.error("Upload failed"))}
+              className="inline-flex items-center gap-2 rounded-lg glass px-4 py-2 text-sm font-semibold"
+            >
+              <Cloud className="size-4" /> Upload local progress to cloud
+            </button>
+          )}
+        </Section>
+
         <Section title="Appearance" desc="The dashboard is dark by default and tuned for long sessions.">
           <Toggle label="Animations" checked={state.settings.animations} onChange={(v) => state.setSetting("animations", v)} />
           <Toggle label="Confirm before marking complete" checked={state.settings.confirmCompletions} onChange={(v) => state.setSetting("confirmCompletions", v)} />
         </Section>
 
-        <Section title="Backup" desc="Your progress lives in this browser. Export to keep a copy safe.">
+        <Section title="Backup" desc="Export a JSON copy anytime. Import restores progress and syncs when signed in.">
           <div className="flex flex-wrap gap-2">
             <button onClick={exportData} className="inline-flex items-center gap-2 rounded-lg bg-gradient-primary text-primary-foreground px-4 py-2 text-sm font-semibold"><Download className="size-4" /> Export JSON</button>
             <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-lg glass px-4 py-2 text-sm font-semibold"><Upload className="size-4" /> Import JSON</button>
@@ -62,9 +140,9 @@ function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Danger zone" desc="This permanently clears all your progress.">
+        <Section title="Danger zone" desc="Clears local progress and your cloud copy when signed in.">
           <button
-            onClick={() => { if (confirm("Reset all progress? This cannot be undone.")) { state.reset(); toast.success("Progress reset"); } }}
+            onClick={resetAll}
             className="inline-flex items-center gap-2 rounded-lg bg-destructive/15 text-destructive border border-destructive/30 px-4 py-2 text-sm font-semibold hover:bg-destructive/25"
           >
             <Trash2 className="size-4" /> Reset progress
@@ -74,7 +152,7 @@ function SettingsPage() {
         <div className="glass rounded-2xl p-5 flex items-start gap-3">
           <Sparkles className="size-5 text-primary mt-0.5" />
           <div className="text-sm text-muted-foreground">
-            Built for personal use. No accounts. No backend. Everything is stored locally in your browser via localStorage.
+            Curriculum stays in the app. Your progress is cached in localStorage and synced to Supabase when you are signed in.
           </div>
         </div>
       </div>
@@ -97,6 +175,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
     <label className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-accent/40">
       <span className="text-sm">{label}</span>
       <button
+        type="button"
         onClick={() => onChange(!checked)}
         className={`relative w-10 h-6 rounded-full transition ${checked ? "bg-gradient-primary" : "bg-secondary"}`}
       >

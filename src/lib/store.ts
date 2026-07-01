@@ -55,7 +55,7 @@ interface Store extends AppState {
   importState: (s: AppState) => void;
 }
 
-const initial: AppState = {
+export const initialAppState: AppState = {
   completedLectures: {},
   lectureNotes: {},
   completedProjects: {},
@@ -73,7 +73,7 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 export const useAppStore = create<Store>()(
   persist(
     (set, get) => ({
-      ...initial,
+      ...initialAppState,
       toggleLecture: (id) =>
         set((s) => {
           const completed = { ...s.completedLectures };
@@ -123,7 +123,7 @@ export const useAppStore = create<Store>()(
         })),
       setWeeklyTarget: (n) =>
         set((s) => ({ codewars: { ...s.codewars, weeklyTarget: n } })),
-      reset: () => set({ ...initial }),
+      reset: () => set({ ...initialAppState }),
       importState: (s) => set({ ...s }),
     }),
     { name: "roadmap-progress-v1" }
