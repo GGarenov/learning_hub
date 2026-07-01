@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Cell } from "recharts";
 import { MONTHS, TOTAL_LECTURES, TOTAL_MINUTES } from "@/lib/curriculum";
-import { useAppStore, monthProgress, completedMinutes, computeStreak, longestStreak } from "@/lib/store";
+import { useAppStore, monthProgress, completedMinutes, computeStreak, longestStreak, weekHistory, weeksOnTarget } from "@/lib/store";
 import { Shell } from "@/components/Shell";
 import { StatCard } from "@/components/StatCard";
-import { CheckCircle2, Flame, TrendingUp, Trophy, Clock, BookOpen, Star, Calendar } from "lucide-react";
+import { CheckCircle2, Flame, TrendingUp, Trophy, Clock, BookOpen, Star, Calendar, Swords } from "lucide-react";
 
 export const Route = createFileRoute("/statistics")({
   head: () => ({ meta: [{ title: "Statistics" }] }),
@@ -28,6 +28,11 @@ function StatisticsPage() {
   })();
   const streak = computeStreak(state.activityLog);
   const longest = longestStreak(state.activityLog);
+
+  const weeklyTarget = state.codewars.weeklyTarget;
+  const kataHistory = weekHistory(state.codewars.entries, weeklyTarget, 12);
+  const totalKatas = state.codewars.entries.length;
+  const weeksHit = weeksOnTarget(state.codewars.entries, weeklyTarget);
 
   // last 30 days line
   const last30 = (() => {
@@ -65,6 +70,7 @@ function StatisticsPage() {
         <StatCard icon={Flame} label="Current streak" value={`${streak}d`} accent="warning" />
         <StatCard icon={TrendingUp} label="Longest streak" value={`${longest}d`} accent="warning" />
         <StatCard icon={Calendar} label="Est. completion" value={isFinite(daysLeft) ? eta.toLocaleDateString() : "—"} hint={`${daysLeft}d`} />
+        <StatCard icon={Swords} label="Total katas" value={totalKatas} hint={`${weeksHit} weeks on target`} accent="warning" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4 mb-8">
@@ -95,6 +101,29 @@ function StatisticsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl p-5 mb-4">
+        <div className="text-sm font-semibold mb-1">Practice — katas per week</div>
+        <div className="text-xs text-muted-foreground mb-4">Last 12 weeks · orange = target hit</div>
+        <div className="h-52">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={kataHistory} barSize={18}>
+              <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 0.06)" />
+              <XAxis dataKey="label" stroke="oklch(0.7 0.02 270)" fontSize={10} />
+              <YAxis stroke="oklch(0.7 0.02 270)" fontSize={11} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{ background: "oklch(0.21 0.022 270)", border: "1px solid oklch(1 0 0 / 0.1)", borderRadius: 12 }}
+                formatter={(v: number) => [`${v} katas`]}
+              />
+              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                {kataHistory.map((d, i) => (
+                  <Cell key={i} fill={d.hitTarget ? "oklch(0.75 0.15 60)" : "oklch(0.45 0.08 270)"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

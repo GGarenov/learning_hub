@@ -7,6 +7,7 @@ import {
   Trophy,
   Calendar as CalendarIcon,
   ChevronRight,
+  Swords,
 } from "lucide-react";
 import { MONTHS } from "@/lib/curriculum";
 import { useAppStore, monthProgress } from "@/lib/store";
@@ -54,6 +55,7 @@ export function AppSidebar() {
           <Item to="/roadmap" icon={Map} label="Roadmap" />
           <Item to="/statistics" icon={BarChart3} label="Statistics" />
           <Item to="/calendar" icon={CalendarIcon} label="Calendar" />
+          <Item to="/practice" icon={Swords} label="Practice" />
           <Item to="/achievements" icon={Trophy} label="Achievements" />
           <Item to="/settings" icon={Settings} label="Settings" />
         </div>

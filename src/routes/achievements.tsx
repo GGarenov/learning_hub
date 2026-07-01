@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Shell } from "@/components/Shell";
-import { useAppStore, monthProgress, computeStreak, longestStreak } from "@/lib/store";
+import { useAppStore, monthProgress, computeStreak, longestStreak, weeksOnTarget } from "@/lib/store";
 import { MONTHS, TOTAL_LECTURES } from "@/lib/curriculum";
 import { Award, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,12 @@ function AchievementsPage() {
   const streak = computeStreak(state.activityLog);
   const longest = longestStreak(state.activityLog);
 
+  const totalKatas = state.codewars.entries.length;
+  const weeklyTarget = state.codewars.weeklyTarget;
+  const weeksHit = weeksOnTarget(state.codewars.entries, weeklyTarget);
+  const hasKyu6 = state.codewars.entries.some((e) => e.kyu <= 6);
+  const month8Active = MONTHS[7] ? monthProgress(MONTHS[7], state.completedLectures).pct > 0 : false;
+
   const badges = [
     { id: "first", title: "First Lecture", desc: "Complete your first lecture", unlocked: done >= 1 },
     { id: "10", title: "Getting Started", desc: "10 lectures completed", unlocked: done >= 10 },
@@ -31,6 +37,13 @@ function AchievementsPage() {
     { id: "streak30", title: "30-Day Streak", desc: "Learn 30 days in a row", unlocked: longest >= 30 },
     { id: "halfway", title: "Halfway There", desc: "50% of program complete", unlocked: done >= TOTAL_LECTURES / 2 },
     { id: "all", title: "Program Complete", desc: "Finish the entire roadmap", unlocked: done === TOTAL_LECTURES },
+    // Codewars badges
+    { id: "cw-first", title: "First Blood", desc: "Log your first kata", unlocked: totalKatas >= 1 },
+    { id: "cw-week", title: "Week Warrior", desc: `Hit ${weeklyTarget} katas in any single week`, unlocked: weeksHit >= 1 },
+    { id: "cw-4weeks", title: "Consistent Coder", desc: "Hit your weekly target 4 times", unlocked: weeksHit >= 4 },
+    { id: "cw-100", title: "Century", desc: "Log 100 katas in total", unlocked: totalKatas >= 100 },
+    { id: "cw-6kyu", title: "Rank Up", desc: "Solve your first 6 kyu kata", unlocked: hasKyu6 },
+    { id: "cw-ready", title: "Interview Ready", desc: "50+ katas logged & Month 8 started", unlocked: totalKatas >= 50 && month8Active },
   ];
 
   const unlockedCount = badges.filter((b) => b.unlocked).length;

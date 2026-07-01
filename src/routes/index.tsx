@@ -10,6 +10,7 @@ import {
   TrendingUp,
   GraduationCap,
   Star,
+  Swords,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -31,7 +32,8 @@ import {
 } from "recharts";
 
 import { MONTHS, TOTAL_LECTURES, TOTAL_MINUTES } from "@/lib/curriculum";
-import { useAppStore, monthProgress, completedMinutes, computeStreak } from "@/lib/store";
+import { useAppStore, monthProgress, completedMinutes, computeStreak, isoWeekKey, katasThisWeek } from "@/lib/store";
+import { WeeklyPracticeCard } from "@/components/WeeklyPracticeCard";
 import { CircularProgress } from "@/components/CircularProgress";
 import { StatCard } from "@/components/StatCard";
 import { Shell } from "@/components/Shell";
@@ -63,6 +65,10 @@ function Dashboard() {
     : 0;
 
   const streak = computeStreak(state.activityLog);
+
+  const currentWeek = isoWeekKey(new Date().toISOString());
+  const katasWeek = katasThisWeek(state.codewars.entries, currentWeek);
+  const weeklyTarget = state.codewars.weeklyTarget;
 
   const completedMonths = MONTHS.filter((m) => monthProgress(m, state.completedLectures).pct === 100).length;
   const currentMonth = MONTHS.find((m) => {
@@ -170,6 +176,7 @@ function Dashboard() {
         <StatCard icon={Flame} label="Current Streak" value={`${streak}d`} accent="warning" />
         <StatCard icon={Clock} label="Hours Completed" value={hoursDone} hint={`${hoursLeft}h left`} />
         <StatCard icon={Calendar} label="Days Remaining" value={isFinite(estimatedDays) ? estimatedDays : "—"} hint="est." accent="primary" />
+        <StatCard icon={Swords} label="Katas this week" value={`${katasWeek}/${weeklyTarget}`} hint={katasWeek >= weeklyTarget ? "Target hit 🎉" : `${weeklyTarget - katasWeek} to go`} accent="warning" />
       </section>
 
       {/* Charts */}
@@ -267,6 +274,11 @@ function Dashboard() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Weekly practice widget */}
+      <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <WeeklyPracticeCard />
       </section>
 
       {/* Motivation */}

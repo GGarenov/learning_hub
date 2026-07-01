@@ -5,6 +5,21 @@ import { MONTHS, TOTAL_LECTURES, TOTAL_MINUTES, ALL_LECTURE_IDS, type MonthDef }
 
 export type CalendarKind = "learning" | "rest" | "project" | "assessment";
 
+export const KYU_VALUES = [8, 7, 6, 5, 4, 3, 2, 1] as const;
+export type Kyu = (typeof KYU_VALUES)[number];
+
+export const CodewarsEntrySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  kyu: z.union([z.literal(8), z.literal(7), z.literal(6), z.literal(5), z.literal(4), z.literal(3), z.literal(2), z.literal(1)]),
+  language: z.string(),
+  url: z.string().optional(),
+  note: z.string().optional(),
+  completedAt: z.string(), // ISO datetime
+});
+
+export type CodewarsEntry = z.infer<typeof CodewarsEntrySchema>;
+
 export const StateSchema = z.object({
   completedLectures: z.record(z.string(), z.string()), // lectureId -> ISO date
   lectureNotes: z.record(z.string(), z.string()),
@@ -18,6 +33,10 @@ export const StateSchema = z.object({
     animations: z.boolean(),
     confirmCompletions: z.boolean(),
   }),
+  codewars: z.object({
+    weeklyTarget: z.number(),
+    entries: z.array(CodewarsEntrySchema),
+  }),
 });
 
 export type AppState = z.infer<typeof StateSchema>;
@@ -29,6 +48,9 @@ interface Store extends AppState {
   recordAssessment: (assessmentId: string, score: number) => void;
   setCalendarDay: (date: string, kind: CalendarKind | null) => void;
   setSetting: <K extends keyof AppState["settings"]>(k: K, v: AppState["settings"][K]) => void;
+  logKata: (entry: Omit<CodewarsEntry, "id" | "completedAt">) => void;
+  deleteKata: (id: string) => void;
+  setWeeklyTarget: (n: number) => void;
   reset: () => void;
   importState: (s: AppState) => void;
 }
@@ -43,6 +65,7 @@ const initial: AppState = {
   calendar: {},
   activityLog: {},
   settings: { animations: true, confirmCompletions: false },
+  codewars: { weeklyTarget: 10, entries: [] },
 };
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -84,6 +107,22 @@ export const useAppStore = create<Store>()(
         }),
       setSetting: (k, v) =>
         set((s) => ({ settings: { ...s.settings, [k]: v } })),
+      logKata: (entry) =>
+        set((s) => ({
+          codewars: {
+            ...s.codewars,
+            entries: [
+              { ...entry, id: crypto.randomUUID(), completedAt: new Date().toISOString() },
+              ...s.codewars.entries,
+            ],
+          },
+        })),
+      deleteKata: (id) =>
+        set((s) => ({
+          codewars: { ...s.codewars, entries: s.codewars.entries.filter((e) => e.id !== id) },
+        })),
+      setWeeklyTarget: (n) =>
+        set((s) => ({ codewars: { ...s.codewars, weeklyTarget: n } })),
       reset: () => set({ ...initial }),
       importState: (s) => set({ ...s }),
     }),
@@ -156,3 +195,47 @@ export const longestStreak = (log: Record<string, number>) => {
 };
 
 export const allConstants = { TOTAL_LECTURES, TOTAL_MINUTES, ALL_LECTURE_IDS };
+
+// ---------- codewars selectors ----------
+export const katasThisWeek = (entries: CodewarsEntry[], weekKey: string) =>
+  entries.filter((e) => isoWeekKey(e.completedAt) === weekKey).length;
+
+export const weekHistory = (entries: CodewarsEntry[], weeklyTarget: number, n = 12) => {
+  const result: { week: string; label: string; count: number; hitTarget: boolean }[] = [];
+  const today = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i * 7);
+    const key = isoWeekKey(d.toISOString());
+    const count = entries.filter((e) => isoWeekKey(e.completedAt) === key).length;
+    result.push({ week: key, label: weekLabel(d), count, hitTarget: count >= weeklyTarget });
+  }
+  return result;
+};
+
+export const weeksOnTarget = (entries: CodewarsEntry[], weeklyTarget: number) => {
+  const byWeek = new Map<string, number>();
+  for (const e of entries) {
+    const k = isoWeekKey(e.completedAt);
+    byWeek.set(k, (byWeek.get(k) ?? 0) + 1);
+  }
+  return [...byWeek.values()].filter((c) => c >= weeklyTarget).length;
+};
+
+function isoWeekKey(iso: string): string {
+  const d = new Date(iso);
+  // shift to Monday-based week
+  const day = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1;
+  const mon = new Date(d);
+  mon.setUTCDate(d.getUTCDate() - day);
+  return mon.toISOString().slice(0, 10);
+}
+
+function weekLabel(d: Date): string {
+  const day = d.getUTCDay() === 0 ? 6 : d.getUTCDay() - 1;
+  const mon = new Date(d);
+  mon.setUTCDate(d.getUTCDate() - day);
+  return mon.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+export { isoWeekKey, weekLabel };

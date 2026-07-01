@@ -33,6 +33,7 @@ export function MobileTopbar() {
           <Link2 to="/roadmap" label="Roadmap" />
           <Link2 to="/statistics" label="Statistics" />
           <Link2 to="/calendar" label="Calendar" />
+          <Link2 to="/practice" label="Practice" />
           <Link2 to="/achievements" label="Achievements" />
           <Link2 to="/settings" label="Settings" />
           <div className="pt-2 text-[11px] uppercase text-muted-foreground">Months</div>
